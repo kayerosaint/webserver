@@ -163,7 +163,7 @@ case $remove in
       echo -ne "$i\r"
       sleep 1
     done
-    yum remove 1c* -y && rm -rf /opt/1cv8 ;;
+    yum remove 1c* -y >/dev/null && rm -rf /opt/1cv8 ;;
   2)
     echo -e "$Red \n aborted $Color_Off"
     sleep 1 ;;
@@ -183,7 +183,7 @@ echo "1 - yes, 2 - no"
       max_retries=3
       while [ $retries -lt $max_retries ]
       do 
-          echo -e "$Yellow \n For download the latest 1C version from FTP ($ip_ftp) please enter credentials! $Color_Off" && sleep 2
+          echo -e "$Yellow \n For download 1C version $version from FTP ($ip_ftp) please enter credentials! $Color_Off" && sleep 2
           echo -e "$Yellow \n Enter FTP user: $Color_Off"
           read -p user": " ftpuser
           echo -e "$Yellow \n Enter password for $ftpuser: $Color_Off"
@@ -200,6 +200,7 @@ echo "1 - yes, 2 - no"
       for dir in /opt/1cv8/x86_64/8.3.*; do
       if [[ ! -d "$dir" ]]; then
         cd /tmp/$ip_ftp/upload/ && sudo chmod 744 setup-full-$version-x86_64.run && sudo ./setup-full-$version-x86_64.run --mode unattended --enable-components server,ws
+        echo -e "$Green \n Success installation! $Color_Off"
       else  
         echo -e "$Green \n 1c already installed $Color_Off" && sleep 1
       fi
@@ -221,8 +222,6 @@ echo "1 - yes, 2 - no"
     echo -e "$Red \n error $Color_Off"
     sleep 1
   esac
-
-rm -rf $CUR_DIR/tmp* $CUR_DIR/1c-ent*
 
 # Install mod_ssl
 echo -e "$Cyan \n mod_ssl install $Color_Off"
@@ -309,7 +308,6 @@ echo "1 - yes, 2 - no"
       else
         sudo sed -i "/SSLCACertificateFile/c\SSLCACertificateFile $SSLCACertificateFile" /etc/httpd/conf.d/ssl.conf
       fi
-      echo -e "$Green \n Complete! $Color_Off" && sleep 1
     else
       cp /tmp/$ip_ftp/upload/ssl.conf /etc/httpd/conf.d/
       cp /tmp/$ip_ftp/upload/$SSLCF $SSLCertificateFile
@@ -332,10 +330,10 @@ echo "1 - yes, 2 - no"
       else
         sudo sed -i "/SSLCACertificateFile/c\SSLCACertificateFile $SSLCACertificateFile" /etc/httpd/conf.d/ssl.conf
       fi
-      echo -e "$Green \n Complete! $Color_Off" && sleep 1
     fi
-  done ;;
-
+  done
+  echo -e "$Green \n Complete! $Color_Off"
+  sleep 1 ;;
   2)
   echo -e "$Red \n aborted $Color_Off"
   sleep 1 ;;
@@ -347,3 +345,25 @@ echo "1 - yes, 2 - no"
 # Restart apache
 echo -e "$Cyan \n Restart apache $Color_Off" && sleep 1
 systemctl restart httpd && systemctl status httpd
+
+# Add crontab task?
+echo -e "$Cyan \n Add crontab task for checking certificate expiration? WARNING! THIS WILL DELETE ALL CURRENT CRON TASKS!!! $Color_Off"
+echo "1 - yes, 2 - no"
+  read cron_inst
+  case $cron_inst in
+  1)
+  chmod 755 $CUR_DIR/check.sh
+  ESCAPED_CUR_DIR=${CUR_DIR////\\/}
+  sed -i "s/\.\/.env/$ESCAPED_CUR_DIR\/.env/g" $CUR_DIR/check.sh
+  echo "*/1 * * * * $CUR_DIR/check.sh > $CUR_DIR/logs+errors 2>&1" | crontab -
+  crontab -l
+  echo -e "$Green \n Installed! $Color_Off" ;;
+  2)
+  echo -e "$Red \n aborted $Color_Off"
+  sleep 1 ;;
+  *)
+  echo -e "$Red \n error $Color_Off"
+  sleep 1
+  esac
+
+
