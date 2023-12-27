@@ -355,7 +355,7 @@ echo "1 - yes, 2 - no"
   chmod 755 $CUR_DIR/check.sh
   ESCAPED_CUR_DIR=${CUR_DIR////\\/}
   sed -i "s/\.\/.env/$ESCAPED_CUR_DIR\/.env/g" $CUR_DIR/check.sh
-  echo "*/1 * * * * $CUR_DIR/check.sh > $CUR_DIR/logs+errors 2>&1" | crontab -
+  echo "0 12 * * * $CUR_DIR/check.sh > $CUR_DIR/logs+errors 2>&1" | crontab -
   crontab -l
   echo -e "$Green \n Installed! $Color_Off" ;;
   2)
